@@ -1,5 +1,6 @@
 import genshin
-from fastapi import FastAPI, HTTPException, Response
+from typing import Annotated, Union
+from fastapi import FastAPI, HTTPException, Response, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
@@ -49,10 +50,17 @@ def read_root():
 
 
 @app.get("/checkin/{ltuid_v2}/{ltmid_v2}/{ltoken_v2}")
-async def read_item(ltuid_v2: int, ltmid_v2: str, ltoken_v2: str):
+async def read_item(
+    ltuid_v2: int, ltmid_v2: str, ltoken_v2: str, game: Union[str, None] = None
+):
     try:
         cookies = {"ltuid_v2": ltuid_v2, "ltmid_v2": ltmid_v2, "ltoken_v2": ltoken_v2}
-        client = genshin.Client(cookies, game=genshin.Game.GENSHIN)
+        client = genshin.Client()
+        client.set_cookies(cookies)
+        if game:
+            client.default_game = genshin.Game[game.upper()]
+        else:
+            client.default_game = genshin.Game.GENSHIN
         reward = await client.claim_daily_reward()
     except genshin.AlreadyClaimed:
         return Response("Daily reward already claimed")
